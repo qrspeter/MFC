@@ -69,8 +69,8 @@ class ExampleApp(QtWidgets.QMainWindow, design.Ui_Dialog):
          self.t = []		#массив с порядковым номером вывода
          self.Q = []		#массив с величинами расхода
          self.maxg = 200	#максимальное число точек на графике. по достижении график очищается
-         self.w = QtGui.QWidget()
-         self.wing = pg.GraphicsWindow()
+         self.w = QtWidgets.QWidget() # orig. QtGui.QWidget() replaced with QtWidgets.QWidget()
+         self.wing = pg.GraphicsLayoutWidget() # orig. GraphicsWindow is deprecated, use GraphicsLayoutWidget instead
          self.wing.show()
          self.p1 = self.wing.addPlot(title="A", col=0, row=0)
          #self.p1.setYRange(0, 1024, padding=0)	#установить диапазон оси y. если не указан будет определяться автоматически
