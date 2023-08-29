@@ -1,12 +1,14 @@
 #define PID_INTEGER
-#include "GyverPID.h"
+#include "GyverPID/GyverPID.h"
 
 int maxpwm = 1023;  //максимальное значение ШИМ, управляющего пропорциональным клапаном
+int min_flow = 200;
 int dt = 50;        //ms, интервал времени опроса расходомера
 
 int valve = 0;      //ШИМ, подающийся на клапан
 int realflow = 0;   //значение расхода, считываемое с расходомера
 int targetflow = 0; //желаемое значение расхода в случае использования ПИД-регулятора
+const int autonomous_flow = static_cast<int>((3.0 / 5.0) * (maxpwm - min_flow) + min_flow); // автономная работа в режиме 3 л/мин для измерителя с максимумом 5л/мин.
 
 boolean pidon = 0;  //вкл/выкл ПИД-регулятор
 float dtpid = 100;  //ms, интервал времени включения ПИД-регулятора
@@ -19,9 +21,9 @@ unsigned long last_time = 0;
 unsigned long pid_last_time = 0;
 int serialinp = 0;  //то, что считано с последовательного порта
 
-int valve_pin = 9;//6; //пин к которому подключен пропорциональный клапан
-int fm_pin = 14;       //пин к котором подключен расходомер
-
+int valve_pin = 6; //пин к которому подключен пропорциональный клапан. 9th pin is D6
+int fm_pin = A0; // 14;       //пин к котором подключен расходомер. IO14 is A0
+ 
 GyverPID pid(Kp, Ki, Kd); //класс ПИД-регулятора
 
 void setup() {
@@ -36,9 +38,16 @@ void setup() {
   pinMode(fm_pin, INPUT);
 
   Serial.begin(9600);
+  
+  targetflow = autonomous_flow;
+
+  pinMode(LED_BUILTIN, OUTPUT); // индикатор автономной работы
+  digitalWrite(LED_BUILTIN, HIGH);
+
 }
 
-void loop() {
+void loop() 
+{
   if (Serial.available() > 0)
   {
     serialinp = Serial.parseInt();
@@ -49,7 +58,7 @@ void loop() {
     if (serialinp >= 0 && serialinp <= maxpwm)
     {
       pidon = 0;      //если полученное с порта число положительное и в интервале ШИМ, отключаем ПИД-регулятор и открываем клапан
-      valve = serialinp;
+      valve = serialinp; //50; //
       analogWrite(valve_pin, valve);
     }
     if (serialinp < 0 && serialinp >= -maxpwm)
@@ -61,7 +70,7 @@ void loop() {
       pid.setpoint = targetflow;
       pid.output = valve;
     }
-
+    digitalWrite(LED_BUILTIN, LOW);
   }
 
   if (pidon && millis() - pid_last_time >= dtpid)
@@ -72,7 +81,7 @@ void loop() {
     if (abs(realflow - targetflow) > minerr) //ПИД-регулятор включается только если ошибка больше минимально допустимой
     {
       pid.input = realflow;
-      valve = pid.getResult();
+      valve = pid.getResult(); // 100; // 
       analogWrite(valve_pin, valve);
     }
 

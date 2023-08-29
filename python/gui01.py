@@ -14,66 +14,66 @@ from PyQt5.QtCore import QBasicTimer
 import serial
 from port import serial_ports,speeds	#для подключения к последовательному порту
 import glob
-import units	# модуль для перевода едениц измерения 
+import units	# модуль для перевода единиц измерения 
 
 class ExampleApp(QtWidgets.QMainWindow, design.Ui_Dialog):
     def __init__(self):
-         super(QtWidgets.QMainWindow,self).__init__()
-         self.setupUi(self)
+        super(QtWidgets.QMainWindow,self).__init__()
+        self.setupUi(self)
          
-         # задаем список портов и скоростей для соответствующих выподающих списков
-         self.Port.addItems(serial_ports())
-         self.Speed.addItems(speeds)
-         self.realport = None
+        # задаем список портов и скоростей для соответствующих выподающих списков
+        self.Port.addItems(serial_ports())
+        self.Speed.addItems(speeds)
+        self.realport = None
          
-         # задаем список единиц измерения для расходомера и клапана
-         self.fmUnits.addItems(units.unitsfm)
-         self.valveUnits.addItems(units.unitsvalve)
+        # задаем список единиц измерения для расходомера и клапана
+        self.fmUnits.addItems(units.unitsfm)
+        self.valveUnits.addItems(units.unitsvalve)
                   
-         # устанавливаем таймер
-         self.delt = 30
-         self.timer = QBasicTimer()
+        # устанавливаем таймер
+        self.delt = 30
+        self.timer = QBasicTimer()
          
-         # переменные связанные с системой 
-         self.realflow = 0	#расход измеренный расходомером
-         self.targetflow = 0	#требуемое значение расхода в автоматическом режиме работы
-         self.valve = 0		#величина открытия клапана
-         
-         # инициализируем начальное состояние элементов интерфейса
-	 self.targetflowEdit.setText(str(self.targetflow))
-         self.valveEdit.setText(str(self.valve))
-         self.flowOutLbl.setText(str(self.realflow))
-         self.radioManual.setChecked(True)
-         self.valveEdit.setDisabled(False)
-         self.targetflowEdit.setDisabled(True)
-         self.Speed.setCurrentIndex(3)
-         
-	 # описываем реакцию интерфейса на различные события
-         # если нажата кнопка ConnectButton вызываем функцию connect (см.ниже)
-         self.ConnectButton.clicked.connect(self.connect)
-         
-         # если изменены единицы измерения в выпадающих списках
-         self.fmUnits.activated.connect(self.unitschanged)
-         self.valveUnits.activated.connect(self.unitschanged)
-         
-         # если изменен требуемый для поддержания расход газа
-         self.targetflowEdit.editingFinished.connect(self.changeTargetFlow)
-         
-         # если изменена величина открытия клапана
-         self.valveEdit.editingFinished.connect(self.changeValve)
-         
-         # если изменен режим работы
-         self.radioAuto.toggled.connect(self.changeRegime)
-         
-         # инициализации для отрисовки графиков
-         self.t = []		#массив с порядковым номером вывода
-         self.Q = []		#массив с величинами расхода
-         self.maxg = 200	#максимальное число точек на графике. по достижении график очищается
-         self.w = QtWidgets.QWidget() # orig. QtGui.QWidget() replaced with QtWidgets.QWidget()
-         self.wing = pg.GraphicsLayoutWidget() # orig. GraphicsWindow is deprecated, use GraphicsLayoutWidget instead
-         self.wing.show()
-         self.p1 = self.wing.addPlot(title="A", col=0, row=0)
-         #self.p1.setYRange(0, 1024, padding=0)	#установить диапазон оси y. если не указан будет определяться автоматически
+        # переменные связанные с системой 
+        self.realflow = 0	#расход измеренный расходомером
+        self.targetflow = 0	#требуемое значение расхода в автоматическом режиме работы
+        self.valve = 0		#величина открытия клапана
+        
+        # инициализируем начальное состояние элементов интерфейса
+        self.targetflowEdit.setText(str(self.targetflow))
+        self.valveEdit.setText(str(self.valve))
+        self.flowOutLbl.setText(str(self.realflow))
+        self.radioManual.setChecked(True)
+        self.valveEdit.setDisabled(False)
+        self.targetflowEdit.setDisabled(True)
+        self.Speed.setCurrentIndex(3)
+
+        # описываем реакцию интерфейса на различные события
+        # если нажата кнопка ConnectButton вызываем функцию connect (см.ниже)
+        self.ConnectButton.clicked.connect(self.connect)
+
+        # если изменены единицы измерения в выпадающих списках
+        self.fmUnits.activated.connect(self.unitschanged)
+        self.valveUnits.activated.connect(self.unitschanged)
+
+        # если изменен требуемый для поддержания расход газа
+        self.targetflowEdit.editingFinished.connect(self.changeTargetFlow)
+
+        # если изменена величина открытия клапана
+        self.valveEdit.editingFinished.connect(self.changeValve)
+
+        # если изменен режим работы
+        self.radioAuto.toggled.connect(self.changeRegime)
+
+        # инициализации для отрисовки графиков
+        self.t = []		#массив с порядковым номером вывода
+        self.Q = []		#массив с величинами расхода
+        self.maxg = 500	#максимальное число точек на графике. по достижении график очищается
+        self.w = QtWidgets.QWidget() # orig. QtGui.QWidget() replaced with QtWidgets.QWidget()
+        self.wing = pg.GraphicsLayoutWidget() # orig. GraphicsWindow is deprecated, use GraphicsLayoutWidget instead
+        self.wing.show()
+        self.p1 = self.wing.addPlot(title="Gas flow", col=0, row=0)
+        #self.p1.setYRange(0, 1024, padding=0)	#установить диапазон оси y. если не указан будет определяться автоматически
              
     
     def connect(self):	# установка соединения с последовательным портом
@@ -115,7 +115,8 @@ class ExampleApp(QtWidgets.QMainWindow, design.Ui_Dialog):
             #self.realport.flush()	#это может быть нужно если какие-то задержки обмена или рассинхрон
             #self.realport.flushInput()
             #self.realport.flushOutput()
-            self.realport.write(str(value)) #"{0:b}".format(value)
+            self.realport.write(str(value).encode()) #"{0:b}".format(value)
+            print("sendvalue = ", value)
             
     def readvalue(self): #функция для чтения значений из последовательного порта
         line = ''
@@ -124,9 +125,10 @@ class ExampleApp(QtWidgets.QMainWindow, design.Ui_Dialog):
             #self.realport.flushInput()
             #self.realport.flushOutput()
             line = self.realport.readline()
-            info = line.split(',')
+            info = line.decode('utf-8').split(',')
             self.realflow = int(info[0])
             self.valve = int(info[1])
+            print("realflow = ", self.realflow, ", valve = ", self.valve) # line =  b'272,0\r\n' info =  ['272', '0\r\n']
             return int(info[0])
         return -1
 #    def readvalue(self):   #эмулятор для тестирования интерфейса если микроконтроллер не подключен
@@ -150,7 +152,7 @@ class ExampleApp(QtWidgets.QMainWindow, design.Ui_Dialog):
         else:
             self.t.append(len(self.Q))
             self.Q.append(realflowinunit)
-        self.p1.plot(self.t, self.Q, clear=True, pen=(255,0,0))    #отображаем грфик
+        self.p1.plot(self.t, self.Q, clear=True, pen=(255,0,0))    #отображаем график
         
         self.timer.start(self.delt,self)
                 
