@@ -140,7 +140,7 @@ class Ui_Dialog(object):
     def retranslateUi(self, Dialog):
         _translate = QtCore.QCoreApplication.translate
         Dialog.setWindowTitle(_translate("Dialog", "Dialog"))
-        self.label1.setText(_translate("Dialog", "real flow"))
+        self.label1.setText(_translate("Dialog", "Averaged flow"))
         self.label.setText(_translate("Dialog", "valve input"))
         self.valveEdit.setInputMask(_translate("Dialog", "0000"))
         self.label_2.setText(_translate("Dialog", "Port"))

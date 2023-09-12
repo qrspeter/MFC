@@ -3,6 +3,9 @@
 
 import numpy as np
 
+#import queue # for output data
+#from collections import deque
+
 import sys  # sys нужен для передачи argv в QApplication
 #reload(sys)
 #sys.setdefaultencoding('utf-8')
@@ -38,6 +41,8 @@ class ExampleApp(QtWidgets.QMainWindow, design.Ui_Dialog):
         self.realflow = 0	#расход измеренный расходомером
         self.targetflow = 0	#требуемое значение расхода в автоматическом режиме работы
         self.valve = 0		#величина открытия клапана
+        self.averaged_window = 40
+
         
         # инициализируем начальное состояние элементов интерфейса
         self.targetflowEdit.setText(str(self.targetflow))
@@ -66,9 +71,11 @@ class ExampleApp(QtWidgets.QMainWindow, design.Ui_Dialog):
         self.radioAuto.toggled.connect(self.changeRegime)
 
         # инициализации для отрисовки графиков
+#        self.t = queue.Queue() # []		#массив с порядковым номером вывода
+#        self.Q = queue.Queue() #[]		#массив с величинами расхода
         self.t = []		#массив с порядковым номером вывода
         self.Q = []		#массив с величинами расхода
-        self.maxg = 500	#максимальное число точек на графике. по достижении график очищается
+        self.maxg = 300	#максимальное число точек на графике. по достижении график очищается
         self.w = QtWidgets.QWidget() # orig. QtGui.QWidget() replaced with QtWidgets.QWidget()
         self.wing = pg.GraphicsLayoutWidget() # orig. GraphicsWindow is deprecated, use GraphicsLayoutWidget instead
         self.wing.show()
@@ -100,7 +107,7 @@ class ExampleApp(QtWidgets.QMainWindow, design.Ui_Dialog):
     
     def changeTargetFlow(self):   #если величина поддерживаемого расхода изменилась переводим новое значение в единицы 0-1023 и в порт
         self.targetflow = units.unit2pwm(float(self.targetflowEdit.text()),self.fmUnits.currentText(),dev='fm') 
-        self.sendvalue(-self.targetflow)   #отправляем отрицательное значение что бы микроконтроллер знал что переходим в авто режим
+        self.sendvalue(-self.targetflow)   #отправляем отрицательное значение, чтобы микроконтроллер знал что переходим в авто режим
         
     def changeRegime(self):	#если меняется режим
         if self.radioAuto.isChecked():	#если выбран авто режим
@@ -116,7 +123,7 @@ class ExampleApp(QtWidgets.QMainWindow, design.Ui_Dialog):
             #self.realport.flushInput()
             #self.realport.flushOutput()
             self.realport.write(str(value).encode()) #"{0:b}".format(value)
-            print("sendvalue = ", value)
+            # print(f"{value=}") 
             
     def readvalue(self): #функция для чтения значений из последовательного порта
         line = ''
@@ -128,7 +135,7 @@ class ExampleApp(QtWidgets.QMainWindow, design.Ui_Dialog):
             info = line.decode('utf-8').split(',')
             self.realflow = int(info[0])
             self.valve = int(info[1])
-            print("realflow = ", self.realflow, ", valve = ", self.valve) # line =  b'272,0\r\n' info =  ['272', '0\r\n']
+            # print(f"{self.realflow=}, {self.valve=}") 
             return int(info[0])
         return -1
 #    def readvalue(self):   #эмулятор для тестирования интерфейса если микроконтроллер не подключен
@@ -139,20 +146,33 @@ class ExampleApp(QtWidgets.QMainWindow, design.Ui_Dialog):
         try:
             self.realflow = self.readvalue() # считываем данные с расходомера
             realflowinunit = units.pwm2unit(self.realflow,self.fmUnits.currentText(),dev='fm') #переводим в текущие единицы измерения
-            self.flowOutLbl.setText('{0:.2f}'.format(realflowinunit)) #выводим
+#            self.flowOutLbl.setText('{0:.2f}'.format(realflowinunit)) #выводим
             if self.radioAuto.isChecked():	#если режим автоматический выводим еще значение открытия клапана
                 self.valveEdit.setText(str(units.pwm2unit(self.valve,self.valveUnits.currentText(),dev='valve')))
         except:
             self.realflow = self.Q[-1]
-        nc = len(self.Q)
+
         realflowinunit = units.pwm2unit(self.realflow,self.fmUnits.currentText(),dev='fm')
-        if nc > self.maxg:    #добавляем считанные значения в массив, а если значений уже больше чем maxg, то очищаем массив
-            self.t = [0,1]
-            self.Q = [self.Q[-1],realflowinunit]
+
+        self.Q.append(realflowinunit)
+        if     len(self.Q) > self.maxg:
+            self.Q.pop(0)
         else:
             self.t.append(len(self.Q))
-            self.Q.append(realflowinunit)
-        self.p1.plot(self.t, self.Q, clear=True, pen=(255,0,0))    #отображаем график
+
+
+        self.p1.plot(self.t, self.Q, clear=True, pen=(255,0,0))            
+
+
+        if len(self.Q) < self.averaged_window:
+            self.averaged_window = len(self.Q)
+            self.flowOutLbl.setText('{0:.2f}'.format(sum(self.Q) / self.averaged_window)) #выводим
+        else:            
+            self.flowOutLbl.setText('{0:.2f}'.format(sum(self.Q[-1 * self.averaged_window:]) / self.averaged_window)) #выводим
+
+
+
+    #отображаем график
         
         self.timer.start(self.delt,self)
                 

@@ -2,13 +2,13 @@
 #include "GyverPID/GyverPID.h"
 
 int maxpwm = 1023;  //максимальное значение ШИМ, управляющего пропорциональным клапаном
-int min_flow = 200;
+int minpwm = 200;
 int dt = 50;        //ms, интервал времени опроса расходомера
 
 int valve = 0;      //ШИМ, подающийся на клапан
 int realflow = 0;   //значение расхода, считываемое с расходомера
 int targetflow = 0; //желаемое значение расхода в случае использования ПИД-регулятора
-const int autonomous_flow = static_cast<int>((3.0 / 5.0) * (maxpwm - min_flow) + min_flow); // автономная работа в режиме 3 л/мин для измерителя с максимумом 5л/мин.
+const int autonomous_flow = static_cast<int>((3.0 / 5.0) * (maxpwm - minpwm) + minpwm); // автономная работа в режиме 3 л/мин для измерителя с максимумом 5л/мин.
 
 boolean pidon = 0;  //вкл/выкл ПИД-регулятор
 float dtpid = 100;  //ms, интервал времени включения ПИД-регулятора
@@ -21,13 +21,13 @@ unsigned long last_time = 0;
 unsigned long pid_last_time = 0;
 int serialinp = 0;  //то, что считано с последовательного порта
 
-int valve_pin = 6; //пин к которому подключен пропорциональный клапан. 9th pin is D6
+int valve_pin = 9; //пин к которому подключен пропорциональный клапан. 12th pin is D9
 int fm_pin = A0; // 14;       //пин к котором подключен расходомер. IO14 is A0
  
 GyverPID pid(Kp, Ki, Kd); //класс ПИД-регулятора
 
 void setup() {
-  // Пины D9 и D10 - 7.8 кГц 10bit
+  // Пины D9 и D10 - 7.8 кГц 10bit 
   TCCR1A = 0b00000011; // 10bit
   TCCR1B = 0b00000001; // x1 phase correct
 
