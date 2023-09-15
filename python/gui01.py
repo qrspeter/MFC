@@ -165,8 +165,8 @@ class ExampleApp(QtWidgets.QMainWindow, design.Ui_Dialog):
 
 
         if len(self.Q) < self.averaged_window:
-            self.averaged_window = len(self.Q)
-            self.flowOutLbl.setText('{0:.2f}'.format(sum(self.Q) / self.averaged_window)) #выводим
+#            self.averaged_window = len(self.Q)
+            self.flowOutLbl.setText('{0:.2f}'.format(sum(self.Q) / len(self.Q))) #выводим
         else:            
             self.flowOutLbl.setText('{0:.2f}'.format(sum(self.Q[-1 * self.averaged_window:]) / self.averaged_window)) #выводим
 
